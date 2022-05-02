@@ -1,0 +1,172 @@
+\documentclass[oneside]{article}
+
+% Package necessari
+\usepackage[a4paper,top=2cm,bottom=2cm,left=1.5cm,right=1.5cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[table, dvipsnames]{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{cancel}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage[noend]{algpseudocode}
+\usepackage[font={small,sl}]{caption}
+\usepackage[font={small,sl}]{subcaption}
+\usepackage{tocbibind}
+\usepackage{accents}
+\usepackage[section]{placeins}
+\usepackage{multicol}
+\usepackage{mathtools}
+\usepackage{dsfont}
+\usepackage{color}
+\usepackage{titlesec}
+
+\makeatletter
+\AtBeginDocument{%
+  \expandafter\renewcommand\expandafter\subsection\expandafter{%
+    \expandafter\@fb@secFB\subsection
+  }%
+}
+\makeatother
+
+% Colori per i listing
+\definecolor{code_red}{rgb}{0.6,0,0} % strings
+\definecolor{code_green}{rgb}{0.25,0.5,0.35} % comments
+\definecolor{code_purple}{rgb}{0.5,0,0.35} % keywords
+\definecolor{code_background}{rgb}{0.95,0.95,0.92} % background
+\definecolor{verify_blue}{HTML}{12ACF2}
+\definecolor{verify_red}{HTML}{F2122C}
+\definecolor{verify_yellow}{HTML}{FFBB00}
+
+% Stile del codice standard (C)
+\lstset{
+	language=C, 
+	backgroundcolor=\color{code_background},
+	frame=single,
+	basicstyle=\ttfamily\small,
+	keywordstyle=\color{code_purple}\bfseries\small,
+	stringstyle=\color{code_red}\small,
+	commentstyle=\color{code_green}\small,
+	numbers=left,
+	numberstyle=\small\color{gray},
+	numbersep=5pt,
+	tabsize=4,
+	showtabs=false,
+	showspaces=false,
+	showstringspaces=false,
+	escapechar=|, 
+	captionpos=b,
+	breaklines=true,
+}
+
+% Aggiunto paragraph come subsubsubsection
+\setcounter{secnumdepth}{3}
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+% Impostazione delle lunghezze di alcuni elementi del documento
+\setlength{\parskip}{1em}
+\setlength{\parindent}{0em}
+\setlength{\arrayrulewidth}{0.1em}
+
+% Informazioni per la title page
+\title{Network and System Defense}
+
+\date{A.A. 2021/2022}
+
+\author{A. Chillotti\thanks{\texttt{\href{mailto:alessandro.chillotti@outlook.it}{alessandro.chillotti@outlook.it}}}}
+
+% Impostazione del package hyperref
+\hypersetup{
+    colorlinks=true,
+    linktocpage=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    pdftitle={Network and System Defense},
+    pdfauthor={A. Chillotti},
+}
+ 
+% Stile del codice standard (C)
+\lstset{
+	language=C, 
+	backgroundcolor=\color{code_background},
+	frame=single,
+	basicstyle=\ttfamily\small,
+	keywordstyle=\color{code_purple}\bfseries\small,
+	stringstyle=\color{code_red}\small,
+	commentstyle=\color{code_green}\small,
+	numbers=left,
+	numberstyle=\small\color{gray},
+	numbersep=5pt,
+	tabsize=4,
+	showtabs=false,
+	showspaces=false,
+	showstringspaces=false,
+	escapechar=|, 
+	captionpos=b,
+	breaklines=true,
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small A.Chillotti}
+\rhead{\small Network and System Defense}
+\cfoot{\thepage}
+%\cfoot{Pagina \thepage}
+\SetNlSty{bfseries}{\color{black}}{}
+
+% Spaziatura tabelle
+\renewcommand{\arraystretch}{1.5}
+
+\graphicspath{ {./figs/} }
+% Definizione del colore delle tabelle
+\newcommand{\tablecolors}[1][2]{\rowcolors{#1}{yellow!50}{yellow!25}}
+
+% Definizione dello stile da usare per la P di probabilità (grassetto in math-mode)
+\newcommand{\pr}{\mathbf{P}}
+
+% Forzatura del displaystyle in math-mode
+\everymath\expandafter{\the\everymath\displaystyle}
+
+%\newcommand{\scaption}[1]{\small{\caption{#1}}}
+\renewcommand{\lstlistingname}{Snippet}
+
+% Definizione di comandi per operatori matematici
+\newcommand{\xor}{\oplus}
+
+% Definizione osservazione
+\newcommand{\obs}{\underline{Osservazione}}
+
+% Definizione di \texttt{•} per matematica
+\newcommand{\matht}[1]{\text{\texttt{#1}}}
+
+% Definizione di domande e risposta
+\newcommand{\question}[2]{
+\textit{#1}\\
+#2
+}
+
+\begin{document}
+\maketitle
+
+\section{Traccia del progetto}
+È richiesto produrre un payload (utilizzando qualunque vettore) che è in grado di installare una DNS shell (e.g. guardare \href{https://github.com/sensepost/DNS-Shell}{qui}) utilizzando un horsepill attack. Il payload deve essere in grado di sopravvivere agli update del kernel.
+	
+\section{Svolgimento del progetto}
+\subsection{Costruzione del run-init}
+\subsection{Infezione della macchina vittima}
+\subsection{Preparazione del server \texttt{dnscat2}}
+Dalla repository GitHub di \texttt{dnscat2}\footnote{https://github.com/iagox86/dnscat2} sono stati scaricati i file necessari per l'esecuzione del server e il client \texttt{dnscat2}. Il server \texttt{dnscat2} viene messo in esecuzione, una volta che si risiede all'interno della directory \texttt{server}, con il seguente comando:
+\begin{center}
+\texttt{bundle exec ruby dnscat2.rb --dns `host=X.X.X.X,port=53531'}
+\end{center}
+	
+\end{document}
