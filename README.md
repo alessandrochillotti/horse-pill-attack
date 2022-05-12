@@ -4,7 +4,7 @@
 ## Traccia del progetto (traduzione)
 È richiesto produrre un payload (utilizzando qualunque vettore) che è in grado di installare una DNS shell (e.g. guardare [qui](https://github.com/sensepost/DNS-Shell)) utilizzando un horsepill attack. Il payload deve essere in grado di sopravvivere agli update del kernel.
 
-## Come effettuare l'attaco
+## Come effettuare l'attacco
 ### Configurazione del server dnscat2
 È necessario mettere up and running un server `dnscat2` e per fare questo è necessario eseguire i seguenti comandi:
 
@@ -22,7 +22,7 @@ Sulla macchina di lavoro è necessario configurare correttamente il [file](horse
 
 Una volta che la patch è configurata correttamente, dovrà essere inviata alla macchina vittima insieme al file [infect.sh](infect.sh).
 ### Esecuzione sulla macchina vittima
-Una volta che la macchina vittima è in possesso dei file (horsepill-attack.patch)[horsepill-attack.patch] e [infect.sh](infect.sh) bisogna eseguire il seguente comando:
+Una volta che la macchina vittima è in possesso dei file [horsepill-attack.patch](horsepill-attack.patch) e [infect.sh](infect.sh) bisogna eseguire il seguente comando:
 ```[bash]
 ./infect.sh ABSOLUTE_PATH_INITRD ABSOLUTE_PATH_PATCH
 ```
