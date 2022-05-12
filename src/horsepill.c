@@ -131,42 +131,29 @@ static void grab_kernel_threads(char **threads)
 	closedir(dirp);
 }
 
-/** 
- * Start section stolen from https://github.com/lxc/lxc/blob/master/src/lxc/utils.c#L1572
+/**
+ * This function set argv and name to the process
  **/
-
-static int setproctitle(char *title)
+static int prctl_operations(char *title)
 {
 	static char *proctitle = NULL;
 	char buf[2048], *tmp;
 	FILE *f;
 	int i, len, ret = 0;
+	unsigned long arg_start, arg_end;
 
-	/* We don't really need to know all of this stuff, but unfortunately
-	 * PR_SET_MM_MAP requires us to set it all at once, so we have to
-	 * figure it out anyway.
-	 */
-	unsigned long start_data, end_data, start_brk, start_code, end_code,
-		start_stack, arg_start, arg_end, env_start, env_end,
-		brk_val;
-	struct prctl_mm_map prctl_map;
-
-	/* f = fopen_cloexec("/proc/self/stat", "r"); */
 	f = fopen("/proc/self/stat", "r");
-	if (!f) {
+	if (!f)
 		return -1;
-	}
 
 	tmp = fgets(buf, sizeof(buf), f);
 	fclose(f);
-	if (!tmp) {
+	if (!tmp)
 		return -1;
-	}
 
-	/* Skip the first 25 fields, column 26-28 are start_code, end_code,
-	 * and start_stack */
+	// skip the first 47 fields to point at arg_start and arg_end
 	tmp = strchr(buf, ' ');
-	for (i = 0; i < 24; i++) {
+	for (i = 0; i < 46; i++) {
 		if (!tmp)
 			return -1;
 		tmp = strchr(tmp+1, ' ');
@@ -174,39 +161,14 @@ static int setproctitle(char *title)
 	if (!tmp)
 		return -1;
 
-	i = sscanf(tmp, "%lu %lu %lu", &start_code, &end_code, &start_stack);
-	if (i != 3)
+	i = sscanf(tmp, "%lu %lu", &arg_start, &arg_end);
+	if (i != 2)
 		return -1;
 
-	/* Skip the next 19 fields, column 45-51 are start_data to arg_end */
-	for (i = 0; i < 19; i++) {
-		if (!tmp)
-			return -1;
-		tmp = strchr(tmp+1, ' ');
-	}
-
-	if (!tmp)
-		return -1;
-
-	i = sscanf(tmp, "%lu %lu %lu %lu %lu %lu %lu",
-		   &start_data,
-		   &end_data,
-		   &start_brk,
-		   &arg_start,
-		   &arg_end,
-		   &env_start,
-		   &env_end);
-	if (i != 7)
-		return -1;
-
-	/* Include the null byte here, because in the calculations below we
-	 * want to have room for it. */
-	/* len = strlen(title) + 1; */
+	// include the null byte here
 	len = strlen(title) + 1;
 
-	/* If we don't have enough room by just overwriting the old proctitle,
-	 * let's allocate a new one.
-	 */
+	// if we don't have enough room by just overwriting the old proctitle, let's allocate a new one
 	if (len > arg_end - arg_start) {
 		void *m;
 		m = realloc(proctitle, len);
@@ -219,50 +181,22 @@ static int setproctitle(char *title)
 
 	arg_end = arg_start + len;
 
-	brk_val = (unsigned long)__brk(0);
+        // execute prctl operations
+	ret = prctl(PR_SET_MM, PR_SET_MM_ARG_START, (long) arg_start, 0, 0);
+	if (ret == 0) {
+                strcpy((char*)arg_start, title);
+                ret = prctl(PR_SET_MM, PR_SET_MM_ARG_END, (long) arg_end, 0, 0);
+                if (ret == 0) {
+                        memset((void*)buf, 0, sizeof(buf));
+                        strncpy(buf, title+1, strlen(title)-2);
 
-	prctl_map = (struct prctl_mm_map) {
-		.start_code = start_code,
-		.end_code = end_code,
-		.start_stack = start_stack,
-		.start_data = start_data,
-		.end_data = end_data,
-		.start_brk = start_brk,
-		.brk = brk_val,
-		.arg_start = arg_start,
-		.arg_end = arg_end,
-		.env_start = env_start,
-		.env_end = env_end,
-		.auxv = NULL,
-		.auxv_size = 0,
-		.exe_fd = -1,
-	};
-
-	ret = prctl(PR_SET_MM, PR_SET_MM_MAP, (long) &prctl_map, sizeof(prctl_map), 0);
-	if (ret == 0)
-		strcpy((char*)arg_start, title);
-	else
-		printf("setting cmdline failed - %s", strerror(errno));
+                        if (prctl(PR_SET_NAME, (unsigned long)buf, 0, 0, 0) < 0)
+                                exit(EXIT_FAILURE);
+                }
+        }
 
 	return ret;
 }
-
-static void set_prctl_name(char *name)
-{
-	char buf[2048];
-
-	memset((void*)buf, 0, sizeof(buf));
-	strncpy(buf, name+1, strlen(name)-2);
-
-	if (prctl(PR_SET_NAME, (unsigned long)buf, 0, 0, 0) < 0) {
-		printf("prctl set name returned error!\n");
-		exit(EXIT_FAILURE);
-	}
-}
-
-/** 
- * End section stolen from https://github.com/lxc/lxc/blob/master/src/lxc/utils.c#L1572
- **/
 
 /**
  * This function create the threads
@@ -272,14 +206,12 @@ static void make_kernel_threads(char **threads)
 	int i;
 	if (fork() == 0) {
 		// special case for pid 2 (kthreadd)
-		set_prctl_name(threads[0]);
-		setproctitle(threads[0]);
+                prctl_operations(threads[0]);
 
 		for (i = 1; threads[i]; i++) {
 			if (fork() == 0) {
 				// all other kernel threads are children of pid 2
-				set_prctl_name(threads[i]);
-				setproctitle(threads[i]);
+				prctl_operations(threads[i]);
 
 				while(1)
 					pause();
