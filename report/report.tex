@@ -337,7 +337,19 @@ Vengono eseguite una serie di \texttt{fork} ed attraverso una funzione ad-hoc, p
 \end{enumerate}
 \end{enumerate}
 
-Inoltre, l'hook per gli update è stato realizzato grazie al costrutto \texttt{inotify}. Per implementare l'hook è stato definitio un \texttt{watch} che, nel path \texttt{/boot/}, notifica gli eventi di tipo \texttt{IN\_MOVE}. Nel momento in cui viene eseguita la \texttt{MOVE TO} dell'\textit{init ramdisk} aggiornato viene lanciato lo script \texttt{reinfect} in modo tale da infettare il nuovo \textit{initrd} andando ad utilizzare il \textit{run-init} salvato all'interno dello scratch space.
+Inoltre, l'hook per gli update è stato realizzato grazie al costrutto \texttt{inotify}. Per implementare l'hook è stato definito un \texttt{watch} che, nel path \texttt{/boot/}, notifica gli eventi di tipo \texttt{IN\_MOVE}. La tipologia d'evento da notificare è stata scelta grazie alla creazione di un programma che ha l'obiettivo di notificare tutti gli eventi che avvengono nel path \texttt{/boot/} a seguito dell'esecuzione del seguente comando:
+\begin{center}
+\texttt{sudo update-initramfs -u -k all}
+\end{center}
+L'output prodotto dal programma è il seguente:
+\begin{figure}[ht!]
+\centering
+\frame{\includegraphics[width=0.6\textwidth]{figs/inotify}}˘
+\caption{Eventi notificati dopo l'esecuzione di \texttt{update-initramfs}}
+\end{figure}
+
+\newpage
+Quindi, l'hook inizia la sua esecuzione nel momento in cui viene eseguita la \texttt{MOVE TO} dell'\textit{init ramdisk} aggiornato viene lanciato lo script \texttt{reinfect} in modo tale da infettare il nuovo \textit{initrd} andando ad utilizzare il \textit{run-init} salvato all'interno dello scratch space.
 
 \subsection{Preparazione del server \texttt{dnscat2}}
 Dalla repository GitHub di \texttt{dnscat2}\footnote{\url{https://github.com/iagox86/dnscat2}} sono stati scaricati i file necessari per l'esecuzione del server. Il server \texttt{dnscat2} viene messo in esecuzione, una volta che si risiede all'interno della directory \texttt{server}, con il seguente comando:
