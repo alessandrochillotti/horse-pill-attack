@@ -368,8 +368,6 @@ L'attacco è stato eseguito sfruttando l'interconnesione fra due macchine virtua
 \section{Struttura della directory di progetto}
 Il repository GitHub\footnote{\url{https://github.com/alessandrochillotti/horsepill-attack}} ha la seguente struttura:
 \begin{itemize}
-\item \texttt{infect.sh}: la sua esecuzione implementa l'infezione della macchina vittima;
-\item \texttt{reinfect.sh}: la sua esecuzione implementa l'infezione della macchina vittima a valle di un aggiornamento;
 \item \texttt{horsepill-attack.patch}: è il file che contiene la patch che, se applicata, consente la costruzione del \textit{run-init} infetto;
 \item \texttt{src}: contiene i file sorgenti che costituiscono l'attacco
 \begin{itemize}
@@ -378,9 +376,12 @@ Il repository GitHub\footnote{\url{https://github.com/alessandrochillotti/horsep
 \item \texttt{horsepill.h}
 \item \texttt{reinfect.h}
 \end{itemize}
+\item \texttt{scripts}: directory contenente gli script creati
+\begin{itemize}
+\item \texttt{infect.sh}: la sua esecuzione implementa l'infezione della macchina vittima;
+\item \texttt{reinfect.sh}: la sua esecuzione implementa l'infezione della macchina vittima a valle di un aggiornamento.
+\end{itemize}
 \item \texttt{README.md}: mostra un how-to per svolgere l'attacco.
 \end{itemize}
-
-
 
 \end{document}
