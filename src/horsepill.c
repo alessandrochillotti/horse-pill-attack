@@ -23,9 +23,13 @@
 
 pid_t init_pid;
 
-extern pid_t __clone(int, void *);
-static inline int raw_clone(unsigned long flags, void *child_stack) {
-	return __clone(flags, child_stack);
+/**
+ * clone_in_new_namespace - this function call clone to fork a process in new newspace
+ * 
+ * Returns: pid of new process
+ **/
+static inline pid_t clone_in_new_namespace(void *child_stack) {
+	return __clone(SIGCHLD | CLONE_NEWPID | CLONE_NEWNS, child_stack);
 }
 
 /**
@@ -377,7 +381,7 @@ void perform_hacks()
 	grab_kernel_threads(kthreads);
 	
 	// clone(CLONE_NEWPID, CLONE_NEWNS)
-	init_pid = raw_clone(SIGCHLD | CLONE_NEWPID | CLONE_NEWNS, NULL);
+	init_pid = clone_in_new_namespace(NULL);
 	if (init_pid < 0)
 		exit(EXIT_FAILURE);
 	
