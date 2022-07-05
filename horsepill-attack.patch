@@ -11055,7 +11055,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * on_sigint - this procedure is handler of SIGINT
++ * on_sigint - this procedure is handler of SIGINT to send SIGINT to child
 + **/
 +static void sigint_handler()
 +{

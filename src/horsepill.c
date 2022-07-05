@@ -313,7 +313,7 @@ static void handle_init_exit(int status)
 }
 
 /**
- * on_sigint - this procedure is handler of SIGINT
+ * on_sigint - this procedure is handler of SIGINT to send SIGINT to child
  **/
 static void sigint_handler()
 {
