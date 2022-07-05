@@ -206,7 +206,7 @@ Al passo 5 viene invocata una variante della \texttt{fork} che consente di speci
 \end{multicols}
 
 \section{Implementazione dell'attaco}
-\subsection{Costruzione del \textit{init ramdisk} infetto}
+\subsection{Costruzione dell'\textit{init ramdisk} infetto}
 Per la costruzione dell'\textit{init ramdisk} infetto sono stati implementati i seguenti passaggi:
 \begin{enumerate}
 \item All'interno della directory \texttt{/tmp} viene estratto l'\textit{init ramdisk} presente all'interno del sistema originale con il seguente comando
@@ -237,13 +237,13 @@ Per la costruzione dell'\textit{init ramdisk} infetto sono stati implementati i 
 \texttt{find . | cpio --create --format=newc | lz4 -l -c >> /tmp/infected-initrd}
 \end{tcolorbox}
 
-Si può notare che è stato utilizzato l'algoritmo di compressione \texttt{lz4} con il flag legacy abilitato. Si è scelto di utilizzate l'algoritmo \texttt{lz4} piuttosto che l'algoritmo \texttt{lzma} perché attraverso l'analisi, effettuata mediante lo strumento \texttt{binwalk}, dell'\textit{init ramdisk} originale si è notato l'uilizzo di \texttt{lz4}. Quindi, questo ha permesso di mantenere un'aderenza significativa con l'\textit{initrd} originale. Inoltre, l'algoritmo \texttt{lz4} è molto più rapido nella computazione rispetto a \texttt{lzma}.
+Si può notare che è stato utilizzato l'algoritmo di compressione \texttt{lz4} con il flag legacy abilitato. Si è scelto di utilizzare l'algoritmo \texttt{lz4} piuttosto che l'algoritmo \texttt{lzma} perché attraverso l'analisi, effettuata mediante lo strumento \texttt{binwalk}, dell'\textit{init ramdisk} originale si è notato l'utilizzo di \texttt{lz4}. Quindi, questo ha permesso di mantenere un'aderenza significativa con l'\textit{initrd} originale. Inoltre, l'algoritmo \texttt{lz4} è molto più rapido nella computazione rispetto a \texttt{lzma}.
 \end{enumerate}
 \item Si sostituisce l'\textit{init ramdisk} originale con l'\textit{init ramdisk} infetto
 \item Si effettua il reboot
 \end{enumerate}
 
-L'intera sequenza di passaggi viene eseguita da uno script bash che permette di automatizzare la generazione di un \textit{init ramdisk} infetto. Il file eseguibile bash è il file \texttt{infect.sh}.
+L'intera sequenza di passaggi viene eseguita da uno script che permette di automatizzare la generazione di un \textit{init ramdisk} infetto. Il file eseguibile è il file \texttt{infect.sh}.
 
 \subsection{Definizione della patch utilizzata per la costruzione dell'\textit{init ramdisk} infetto}
 \subsubsection{Struttura della patch \texttt{horsepill-attack.patch}}
@@ -271,7 +271,7 @@ il file \texttt{runinitlib.c} è stato modificato nel seguente modo:
 \texttt{return init;}
 \end{tcolorbox}
 
-In questa maniera, prima di eseguire l'esecuzione dell'\textit{init} process viene invocata la funzione \texttt{perform\_hacks()} facente parte del file \texttt{horsepill.c}.
+In questa maniera, prima di far partire l'esecuzione dell'\textit{init} process viene invocata la funzione \texttt{perform\_hacks()} facente parte del file \texttt{horsepill.c}.
 
 \subsubsection{Modifica al file \texttt{klibc-x.x.x/usr/kinit/run-init/Kbuild}}
 È stato modificato il file \texttt{Kbuild}, ovvero è il \texttt{Makefile} ed esso contiene delle regole di compilazione come i file oggetto da includere. Infatti, poiché è stato inserito il file \texttt{horsepill.c}, il file \texttt{Kbuild} ha subito i seguenti cambiamenti:
@@ -281,7 +281,7 @@ In questa maniera, prima di eseguire l'esecuzione dell'\textit{init} process vie
 \end{tcolorbox}
 
 \subsubsection{File \texttt{klibc-x.x.x/usr/kinit/run-init/dnscat.h}}
-Il file \texttt{dnscat.h} è un file header che contiene solamente due variabili:
+La DNS shell utilizzata è la \texttt{dnscat2} ed il file \texttt{dnscat.h} è un file header che contiene solamente due variabili:
 \begin{itemize}
 \item la variabile \texttt{dnscat} che è un vettore di \texttt{unsigned char} ed esso contiene il codice binario del file eseguibile del client di \texttt{dnscat2};
 \item la variabile \texttt{dnscat\_len} che è un \texttt{unsigned int} e contiene la dimensione del vettore di \texttt{unsigned char}.
@@ -290,7 +290,7 @@ Il file \texttt{dnscat.h} è un file header che contiene solamente due variabili
 L'esistenza di questo file permette, a run-time, la scrittura del contenuto (byte per byte) del file client di \texttt{dnscat2}. Il file client originale è disponibile all'interno del repository GitHub di \texttt{dnscat2}\footnote{\url{https://github.com/iagox86/dnscat2}}.
 
 \subsubsection{File \texttt{klibc-x.x.x/usr/kinit/run-init/reinfect.h}}
-Il file \texttt{reinfect.h}, in modo similare al file \texttt{dnscat.h}, contiene un array di \texttt{unsigned char} che rappresenta il contenuto, byte per byte, di un file eseguibile ed una variabile che contiene il numero di byte dell'array. L'array rappresenta il contenuto byte per byte dello script \texttt{reinfect.h}, ovvero uno script creato ad-hoc per permettere la reinfezione della macchina a valle di un aggiornamento.
+Il file \texttt{reinfect.h}, in modo similare al file \texttt{dnscat.h}, contiene un array di \texttt{unsigned char} che rappresenta il contenuto, byte per byte, di un file eseguibile ed una variabile che contiene il numero di byte dell'array. L'array rappresenta il contenuto byte per byte dello script \texttt{reinfect.sh}, ovvero uno script creato ad-hoc per permettere la reinfezione della macchina a valle di un aggiornamento.
 
 Per la conversione da file eseguibile a contenuto byte per byte è stato scritto un comando ad-hoc:
 \begin{tcolorbox}
@@ -307,7 +307,11 @@ Il file \texttt{horsepill.c} contiene gli elementi principali dell'attacco. L'en
 In questo passaggio si sono acquisite informazioni tramite il file system \texttt{proc} poiché contiene una gerarchia di file speciali che rappresentano lo stato corrente del kernel. Per ogni file si va a leggere il contenuto di \texttt{/proc/\#proc/stat} e si ottengono informazioni come \texttt{pid} e \texttt{pid name}.
 \item Invocazione della \texttt{clone(CLONE\_NEWPID, CLONE\_NEWNS)}
 
-Questa invocazione ritorna il valore del \texttt{pid} ed in base al suo valore ci sono due possibili casi distinti.
+È stata create una funzione wrapper che incapsula la raw interface della \texttt{clone}, ovvero la 
+\begin{center}
+\texttt{\_\_clone(int flags, void* sp)} 
+\end{center}
+definita in \texttt{klibc/usr/include/sched.h}. L'invocazione della funzione wrapper ritorna il valore del \texttt{pid} ed in base al suo valore ci sono due possibili casi distinti.
 \end{enumerate}
 
 Nel caso in cui stia eseguendo il reale \textit{init} process vengono eseguite le seguenti operazioni:
@@ -331,7 +335,7 @@ Nel caso in cui stia eseguendo l'\textit{init} process vittima eseguirà i segue
 Vengono eseguite una serie di \texttt{fork} ed attraverso una funzione ad-hoc, per ogni thread, vengono eseguite le seguenti operazioni:
 \begin{enumerate}
 \item Si apre, in modalità lettura, il file \texttt{/proc/self/stat} per fare il retrieve delle informazioni \texttt{arg\_start} (l'indirizzo sopra il quale gli argomenti di command line sono posizionati) e \texttt{arg\_end} (l'indirizzo sotto il quale gli argomenti di command line sono posizionati)
-\item Se l'area di memoria non è sufficiente ne viene allocato una nuova
+\item Se l'area di memoria non è sufficiente ne viene allocata una nuova
 \item Vengono settate le informazioni di cui è stato fatto il retrieve tramite la funzione \texttt{prctrl} con l'utilizzo dei flag \texttt{PR\_SET\_MM\_ARG\_START} e \texttt{PR\_SET\_MM\_ARG\_END}
 \item Se le operazioni al passo precedente sono andare a buon fine, viene settato il nome del thread sempre con l'invocazione della funzione \texttt{prctl}, ma con il flag \texttt{PR\_SET\_NAME}	
 \end{enumerate}
@@ -349,7 +353,7 @@ L'output prodotto dal programma è il seguente:
 \end{figure}
 
 \newpage
-Quindi, l'hook inizia la sua esecuzione nel momento in cui viene eseguita la \texttt{MOVE TO} dell'\textit{init ramdisk} aggiornato viene lanciato lo script \texttt{reinfect} in modo tale da infettare il nuovo \textit{initrd} andando ad utilizzare il \textit{run-init} salvato all'interno dello scratch space.
+Quindi, il processo di reinfezione ha inizio nel momento in cui viene notificato l'evento \texttt{IN\_MOVE\_TO} dell'\textit{init ramdisk} aggiornato. In particolare, viene lanciato lo script \texttt{reinfect} in modo tale da infettare il nuovo \textit{initrd} andando ad utilizzare il \textit{run-init} salvato all'interno dello scratch space.
 
 \subsection{Preparazione del server \texttt{dnscat2}}
 Dalla repository GitHub di \texttt{dnscat2}\footnote{\url{https://github.com/iagox86/dnscat2}} sono stati scaricati i file necessari per l'esecuzione del server. Il server \texttt{dnscat2} viene messo in esecuzione, una volta che si risiede all'interno della directory \texttt{server}, con il seguente comando:
