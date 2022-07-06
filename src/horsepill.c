@@ -293,7 +293,7 @@ static void handle_init_exit(int status)
 	// queries the termination status of a child process to determine which signal caused the child process to exit
 	int signum = WTERMSIG(status);
 
-	if (signum == SIGHUP) // tell deamons to reload beacuse configuration files are changed
+	if (signum == SIGHUP) // tell deamons to reload because configuration files are changed
 		reboot(LINUX_REBOOT_CMD_RESTART, NULL);
 	else if (signum == SIGINT)
 		reboot(LINUX_REBOOT_CMD_POWER_OFF, NULL);
@@ -331,6 +331,8 @@ void hook_update_initramfs()
 			return; // error in installation of inotify_init
 		
 		wd = inotify_add_watch(fd, "/boot/", IN_MOVE);
+		if (wd < 0)
+			return;
 		
 		while (1) {
 			length = read(fd, buffer, 1024 * (sizeof(struct inotify_event) + 16));
