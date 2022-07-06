@@ -1,4 +1,4 @@
-# Network and System Defence project
+# Network and System Defense project
 ## Alessandro Chillotti (mat. 0299824)
 
 ## Traccia del progetto (traduzione)
